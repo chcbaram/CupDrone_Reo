@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //    프로그램명 	: DEFINE
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이     	: Made by Baram ( chcbaram@paran.com )
 //
 //    날  짜     : 
 //    
@@ -23,6 +23,10 @@
 #define PITCH	1
 #define YAW		2
 
+#define REAR_R	0
+#define FRONT_R 1
+#define REAR_L	2
+#define FRONT_L 3
 
 
 

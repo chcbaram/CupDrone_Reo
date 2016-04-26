@@ -1,9 +1,9 @@
 //----------------------------------------------------------------------------
-//    프로그램명 	: 
+//    프로그램명 	  : 
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이      : Cho Han Cheol 
 //
-//    날  짜     : 
+//    날  짜          : 
 //    
 //    최종 수정  	: 
 //
@@ -75,13 +75,13 @@ cI2C::cI2C()
 ---------------------------------------------------------------------------*/
 void cI2C::begin( void )
 {
-     I2C_PULLUPS_DISABLE
+	I2C_PULLUPS_DISABLE
  
-     TWSR = 0;                                    // no prescaler => prescaler = 1
-     TWBR = ((F_CPU / 400000) - 16) / 2;          // set the I2C clock rate to 400kHz
-     TWCR = 1<<TWEN;                              // enable twi module, no interrupt
+	TWSR = 0;                                    // no prescaler => prescaler = 1
+	TWBR = ((F_CPU / 400000) - 16) / 2;          // set the I2C clock rate to 400kHz
+	TWCR = 1<<TWEN;                              // enable twi module, no interrupt
      
-     i2c_errors_count = 0;
+	i2c_errors_count = 0;
 }
 
 
@@ -95,9 +95,9 @@ void cI2C::begin( void )
 ---------------------------------------------------------------------------*/
 void cI2C::rep_start(uint8_t address) 
 {
-     waitTransmissionI2C((1<<TWINT) | (1<<TWSTA) | (1<<TWEN)); // send REPEAT START condition and wait until transmission completed
-     TWDR = address;                                           // send device address
-     waitTransmissionI2C((1<<TWINT) | (1<<TWEN));              // wail until transmission completed
+	waitTransmissionI2C((1<<TWINT) | (1<<TWSTA) | (1<<TWEN)); // send REPEAT START condition and wait until transmission completed
+	TWDR = address;                                           // send device address
+	waitTransmissionI2C((1<<TWINT) | (1<<TWEN));              // wail until transmission completed
 }
 
 
@@ -112,8 +112,8 @@ void cI2C::rep_start(uint8_t address)
 ---------------------------------------------------------------------------*/
 void cI2C::stop(void) 
 {
-     TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
-     //  while(TWCR & (1<<TWSTO));                // <- can produce a blocking state with some WMP clones
+	TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
+	//  while(TWCR & (1<<TWSTO));                // <- can produce a blocking state with some WMP clones
 }
 
 
@@ -128,8 +128,8 @@ void cI2C::stop(void)
 ---------------------------------------------------------------------------*/
 void cI2C::write(uint8_t data ) 
 {
-     TWDR = data;                                 // send data to the previously addressed device
-     waitTransmissionI2C((1<<TWINT) | (1<<TWEN));
+	TWDR = data;                                 // send data to the previously addressed device
+	waitTransmissionI2C((1<<TWINT) | (1<<TWEN));
 }
 
 
@@ -144,8 +144,8 @@ void cI2C::write(uint8_t data )
 ---------------------------------------------------------------------------*/
 uint8_t cI2C::read_ack(void) 
 {
-     waitTransmissionI2C((1<<TWINT) | (1<<TWEN) | (1<<TWEA));
-     return TWDR;
+	waitTransmissionI2C((1<<TWINT) | (1<<TWEN) | (1<<TWEA));
+	return TWDR;
 }
 
 
@@ -160,10 +160,10 @@ uint8_t cI2C::read_ack(void)
 ---------------------------------------------------------------------------*/
 uint8_t cI2C::read_nak(void) 
 {
-     waitTransmissionI2C((1<<TWINT) | (1<<TWEN));
-     uint8_t r = TWDR;
-     stop();
-     return r;
+	waitTransmissionI2C((1<<TWINT) | (1<<TWEN));
+	uint8_t r = TWDR;
+	stop();
+	return r;
 }
 
 

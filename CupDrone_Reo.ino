@@ -8,18 +8,28 @@
 #include "IMU.h"
 #include "MSP.h"
 #include "PWM.h"
+#include "PID.h"
+
+
 
 
 cLED 		LED;
 cIMU		IMU;
 cMSP		MSP;
 cPWM		PWM;
+cPID		PID[3];
+
+
+
 
 
 int16_t target_roll;
 int16_t target_pitch;
 int16_t target_yaw;
 int16_t target_throtle;
+
+
+
 
 
 
@@ -36,6 +46,16 @@ void setup()
 	MSP.begin();
 	IMU.begin();
 	PWM.begin();
+
+
+	PID[ROLL ].set_gain_angle(30, 0, 0);
+	PID[PITCH].set_gain_angle(30, 0, 0);
+	PID[YAW  ].set_gain_angle(30, 0, 0);
+
+
+	PID[ROLL ].set_gain_rate(28, 10, 7);
+	PID[PITCH].set_gain_rate(28, 10, 7);
+	PID[YAW  ].set_gain_rate(68, 45, 0);
 }
 
 
@@ -52,6 +72,15 @@ void loop()
 {
 	static uint32_t tLed;
 	static uint32_t tMsp;
+
+	uint16_t tIMU;
+
+	int16_t pid_out[3];
+
+	int16_t motor_pwm[4];
+	int16_t max_pwm;
+	int16_t i;
+
 
 
 	//-- LED
@@ -90,9 +119,86 @@ void loop()
 	}
 
 
+
 	//-- 센서값 업데이트
 	//
-	IMU.update();
+	tIMU = IMU.update();
+
+	if( tIMU > 0 )
+	{
+		pid_out[ROLL ] = PID[ROLL ].update( PID_ANGLE, target_roll , IMU.angle[ROLL ], -IMU.gyroData[ROLL ], 5000 );
+		pid_out[PITCH] = PID[PITCH].update( PID_ANGLE, target_pitch, IMU.angle[PITCH], IMU.gyroData[PITCH], 5000 );
+		pid_out[YAW  ] = PID[YAW  ].update( PID_RATE , target_yaw  , IMU.angle[YAW  ], IMU.gyroData[YAW  ], 5000 );
+
+
+  		#define PIDMIX(X,Y,Z)  target_throtle + pid_out[ROLL]*X + pid_out[PITCH]*Y + 1 * pid_out[YAW]*Z
+
+
+		motor_pwm[REAR_R ] = PIDMIX(-1,+1,-1); //REAR_R
+		motor_pwm[FRONT_R] = PIDMIX(-1,-1,+1); //FRONT_R
+		motor_pwm[REAR_L ] = PIDMIX(+1,+1,+1); //REAR_L
+		motor_pwm[FRONT_L] = PIDMIX(+1,-1,-1); //FRONT_L
+/*
+		motor_pwm[REAR_R ] = PIDMIX(-1,+1,+1); //REAR_R
+		motor_pwm[FRONT_R] = PIDMIX(-1,+1,-1); //FRONT_R
+		motor_pwm[REAR_L ] = PIDMIX(+1,+1,-1); //REAR_L
+		motor_pwm[FRONT_L] = PIDMIX(+1,-1,-1); //FRONT_L
+*/
+
+
+		max_pwm = motor_pwm[0];
+
+		for( i=1; i<4; i++)
+		{
+			if(motor_pwm[i] > max_pwm) max_pwm = motor_pwm[i];		
+		}
+      
+		for( i=0; i<4; i++) 
+		{
+			if(max_pwm > 1000) // this is a way to still have good gyro corrections if at least one motor reaches its max.
+			{
+        		motor_pwm[i] -= max_pwm - 1000;
+        	}
+
+			motor_pwm[i] = constrain(motor_pwm[i], 0, 1000);
+
+      		if( target_throtle < 50 )
+      		{
+        		motor_pwm[i] = 0;
+        	}
+
+/*
+        	PWM.set_LT( motor_pwm[FRONT_L] );
+			PWM.set_LB( motor_pwm[REAR_L] );
+			PWM.set_RT( motor_pwm[FRONT_R] );
+			PWM.set_RB( motor_pwm[REAR_R] );
+*/
+      		//if (!f.ARMED)
+      		//{
+        	//	motor[i] = MINCOMMAND;
+        	//}
+		}
+//*/
+
+
+		Serial.print(pid_out[ROLL]);
+		Serial.print(" ");
+		Serial.print(pid_out[PITCH]);
+		Serial.print(" ");
+		Serial.print(pid_out[YAW]);
+		Serial.print(" ");
+
+
+		Serial.print(motor_pwm[REAR_R]);
+		Serial.print(" ");
+		Serial.print(motor_pwm[FRONT_R]);		
+		Serial.print(" ");
+		Serial.print(motor_pwm[REAR_L]);
+		Serial.print(" ");
+		Serial.println(motor_pwm[FRONT_L]);
+
+
+	}
 
 
 
@@ -104,83 +210,6 @@ void loop()
 	loop_menu();
 }
 
-
-
-
-#define GYRO_I_MAX 	256
-#define ACC_I_MAX 	256
-
-
-void pid_control( int16_t roll, int16_t pitch, int16_t yaw, int16_t throtle )
-{
-	int16_t target;
-
-
-
-	//----------PID controller----------
-	//
-	for( axis=0; axis<3; axis++ ) 
-	{
-  		switch( axis )
-  		{
-  			case ROLL:
-				target       = constrain( roll, -500, +500 );
-	      		errorAngle   = target - IMU.angle[axis]; //16 bits is ok here
-		        AngleRateTmp = ((int32_t) errorAngle * conf.pid[PIDLEVEL].P8)>>4;
-  				break;
-
-  			case PITCH:
-				target     = constrain( pitch, -500, +500 );
-	      		errorAngle = target - IMU.angle[axis]; //16 bits is ok here  			
-  				break;
-
-  			case YAW:
-  				AngleRateTmp = (((int32_t) (27) * yaw) >> 5);
-  				break;
-  		}
-
-
-
-	    //--------low-level gyro-based PID. ----------
-	    //Used in stand-alone mode for ACRO, controlled by higher level regulators in other modes
-	    //-----calculate scaled error.AngleRates
-	    //multiplication of rcCommand corresponds to changing the sticks scaling here
-	    RateError = AngleRateTmp  - IMU.SEN.gyroData[axis];
-
-	    //-----calculate P component
-	    PTerm = ((int32_t) RateError * conf.pid[axis].P8)>>7;
-
-	    //-----calculate I component
-	    //there should be no division before accumulating the error to integrator, because the precision would be reduced.
-	    //Precision is critical, as I prevents from long-time drift. Thus, 32 bits integrator is used.
-	    //Time correction (to avoid different I scaling for different builds based on average cycle time)
-	    //is normalized to cycle time = 2048.
-	    errorGyroI[axis]  += (((int32_t) RateError * cycleTime)>>11) * conf.pid[axis].I8;
-	    //limit maximum integrator value to prevent WindUp - accumulating extreme values when system is saturated.
-	    //I coefficient (I8) moved before integration to make limiting independent from PID settings
-	    errorGyroI[axis]  = constrain(errorGyroI[axis], (int32_t) -GYRO_I_MAX<<13, (int32_t) +GYRO_I_MAX<<13);
-	    ITerm = errorGyroI[axis]>>13;
-
-	    //-----calculate D-term
-	    delta          = RateError - lastError[axis];  // 16 bits is ok here, the dif between 2 consecutive gyro reads is limited to 800
-	    lastError[axis] = RateError;
-
-	    //Correct difference by cycle time. Cycle time is jittery (can be different 2 times), so calculated difference
-	    // would be scaled by different dt each time. Division by dT fixes that.
-	    delta = ((int32_t) delta * ((uint16_t)0xFFFF / (cycleTime>>4)))>>6;
-	    //add moving average here to reduce noise
-	    deltaSum       = delta1[axis]+delta2[axis]+delta;
-	    delta2[axis]   = delta1[axis];
-	    delta1[axis]   = delta;
-
-	    //DTerm = (deltaSum*conf.pid[axis].D8)>>8;
-	    //Solve overflow in calculation above...
-	    DTerm = ((int32_t)deltaSum*conf.pid[axis].D8)>>8;
-	    //-----calculate total PID output
-	    axisPID[axis] =  PTerm + ITerm + DTerm;
-	}
-
-}
 
 
 
@@ -228,5 +257,31 @@ void loop_menu( void )
 				}
 			}
 		}
+		else if( Ch == '3' )
+		{
+			while(1)
+			{
+				IMU.update();
+
+				if( (millis()-tTime) >= 100 )
+				{
+					tTime = millis();
+					Serial.print(0);
+					Serial.print(" ");
+					Serial.print(IMU.gyroData[0]);
+					Serial.print(" ");
+					Serial.print(IMU.gyroData[1]);
+					Serial.print(" ");
+					Serial.println(IMU.gyroData[2]);
+				}			
+
+				if( Serial.available() )
+				{
+					if( Serial.read() == 'x' ) break;
+				}
+			}
+		}
+
+
 	}
 }

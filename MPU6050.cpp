@@ -46,8 +46,8 @@
 ---------------------------------------------------------------------------*/
 cMPU6050::cMPU6050()
 {	
-     calibratingG = 0;
-     calibratingA = 0;
+	calibratingG = 0;
+	calibratingA = 0;
 }
 
 

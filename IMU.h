@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //    프로그램명 	: IMU
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이     	: Made by Baram ( chcbaram@paran.com )
 //
 //    날  짜     : 
 //    
@@ -40,14 +40,15 @@ public:
 
 	int16_t accZ;
 	int16_t angle[3];
+	int16_t gyroData[3];
 
 	bool bConnected;
 
 public:
 	cIMU();
 
-	uint8_t begin( void );
-	uint8_t update( uint32_t priod_us = 8000 );
+	uint8_t  begin( void );
+	uint16_t update( uint32_t priod_us = 5000 );
 
 private:	
 	void computeIMU( void );

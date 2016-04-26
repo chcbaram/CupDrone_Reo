@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //    프로그램명 	: 
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이     	: Made by Baram ( chcbaram@paran.com )
 //
 //    날  짜     : 
 //    
@@ -201,21 +201,25 @@ uint8_t cIMU::begin( void )
      ARG     : void
      RET     : void
 ---------------------------------------------------------------------------*/
-uint8_t cIMU::update( uint32_t priod_us )
-{
-	uint8_t  err_code = IMU_OK;
-	uint32_t freq_priod;
+uint16_t cIMU::update( uint32_t priod_us )
+{	
+	uint16_t ret_time = 0;
 
-	static uint32_t tTime[2];
+	static uint32_t tTime;
 	
 
-	if( (micros()-tTime[0]) >= priod_us )
+	if( (micros()-tTime) >= priod_us )
 	{
-		//SEN.acc_get_adc();
+		ret_time = micros()-tTime;
+
 		computeIMU();
+
+		gyroData[0] = SEN.gyroData[0];
+		gyroData[1] = SEN.gyroData[1];
+		gyroData[2] = SEN.gyroData[2];
 	}
 
-	return err_code;
+	return ret_time;
 }
 
 
