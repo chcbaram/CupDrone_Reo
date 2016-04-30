@@ -42,6 +42,7 @@ public:
 	int16_t Get_Yaw( void )		{ return CmdYaw; };
 	int16_t Get_Throtle( void ) { return CmdThrotle; };
 
+	bool    Get_HeadFreeMode( void ) { return HeadFreeMode; };
 
 	bool SendCmd_ARM( void );
 	bool SendCmd_DISARM( void );
@@ -57,10 +58,12 @@ private:
 
 	uint8_t	Cmd;
 	bool    ArmMode;
+	bool  	HeadFreeMode;
 	int16_t CmdRoll;
 	int16_t CmdPitch;
 	int16_t CmdYaw;
 	int16_t CmdThrotle;
+	uint8_t CmdAux;
 
 };
 

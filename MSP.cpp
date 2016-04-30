@@ -44,6 +44,8 @@ cMSP::cMSP()
 	CmdYaw     = 0;;
 	CmdThrotle = 0;
 
+    HeadFreeMode = false;
+
     bConnected = false;
 }
 
@@ -108,6 +110,17 @@ bool cMSP::update( void )
     			CmdPitch    = 1000 + pCmd->Data[1] * 4 - 1500;
     			CmdYaw      = 1000 + pCmd->Data[2] * 4 - 1500;
     			CmdThrotle  = 1000 + pCmd->Data[3] * 4 - 1000;
+                CmdAux      = pCmd->Data[4];
+                //Serial.println(pCmd->Data[4], HEX);
+
+                if( CmdAux & 0x80 )
+                {
+                    HeadFreeMode = true;
+                }    
+                else
+                {
+                    HeadFreeMode = false;
+                }            
                 break;
 
             case MSP_ARM:
@@ -135,6 +148,7 @@ bool cMSP::update( void )
     	CmdPitch    = 0;
     	CmdYaw      = 0;
     	CmdThrotle  = 0;
+        HeadFreeMode = false;
     }
 
 	return Ready_Cmd;

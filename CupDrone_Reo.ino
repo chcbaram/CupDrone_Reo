@@ -40,6 +40,7 @@ int16_t target_pitch;
 int16_t target_yaw;
 int16_t target_throtle;
 
+int16_t target_head;
 
 
 
@@ -58,33 +59,6 @@ void setup()
 	IMU.begin();
 	PWM.begin();
 
-
-/*
-	//-- 기존 제어 게인값 
-	//
-	PID[ROLL ].set_gain_angle(30, 0, 0);
-	PID[PITCH].set_gain_angle(30, 0, 0);
-	PID[YAW  ].set_gain_angle(30, 0, 0);
-
-	PID[ROLL ].set_gain_rate(28, 10, 7);
-	PID[PITCH].set_gain_rate(28, 10, 7);
-	PID[YAW  ].set_gain_rate(68, 45, 0);
-*/
-
-/*
-	//-- 각도 제어기 게인값 설정(P, I, D)
-	//
-	PID[ROLL ].set_gain_angle(50, 10, 0);
-	PID[PITCH].set_gain_angle(50, 10, 0);
-	PID[YAW  ].set_gain_angle( 0,  0, 0);
-
-
-	//-- 각속도 제어기 게인값 설정(P, I, D)
-	//
-	PID[ROLL ].set_gain_rate(28, 0, 0);
-	PID[PITCH].set_gain_rate(28, 0, 0);
-	PID[YAW  ].set_gain_rate(68, 0, 0);
-*/
 
 	//-- 각도 제어기 게인값 설정(P, I, D)
 	//
@@ -109,6 +83,11 @@ void setup()
 		IMU.update();
 		LED.toggle();
 	}
+
+
+	//-- Head Free시 사용할 방향을 전원 On시에 저장한다.
+	//
+	target_head = IMU.angle[YAW];
 }
 
 
@@ -159,6 +138,21 @@ void loop()
 		target_pitch   = MSP.Get_Pitch();
 		target_yaw     = MSP.Get_Yaw();
 		target_throtle = MSP.Get_Throtle();
+
+
+		//-- Head Free 모드 
+		//
+		if( MSP.Get_HeadFreeMode() == true )
+		{
+			float radDiff = (IMU.angle[YAW] - target_head) * 0.0174533f; // where PI/180 ~= 0.0174533
+			float cosDiff = cos(radDiff);
+			float sinDiff = sin(radDiff);
+			
+			int16_t pitch_value = target_pitch*cosDiff + target_roll*sinDiff;
+
+			target_roll  = target_roll*cosDiff - target_pitch*sinDiff; 
+			target_pitch = pitch_value;
+		}
 	}
 
 
@@ -197,7 +191,7 @@ void loop()
 	//-- 센서값 업데이트시 PID 제어 실행  
 	//
 	if( tIMU > 0 )
-	{
+	{		
 		//-- PID 제어값 계산  
 		//
 		pid_out[ROLL ] = PID[ROLL ].update( PID_ANGLE, target_roll , IMU.angle[ROLL ], IMU.gyroData[ROLL ], tIMU );
@@ -230,32 +224,6 @@ void loop()
 
         	PWM.set_out( i, motor_pwm[i] );
 		}
-
-
-		#if 0
-		static uint32_t tTime;
-
-		if( millis()-tTime > 100 )
-		{
-			tTime = millis();
-			Serial.print(pid_out[ROLL]);
-			Serial.print(" ");
-			Serial.print(pid_out[PITCH]);
-			Serial.print(" ");
-			Serial.print(pid_out[YAW]);
-			Serial.print(" ");
-
-
-			Serial.print(motor_pwm[REAR_R]);
-			Serial.print(" ");
-			Serial.print(motor_pwm[FRONT_R]);		
-			Serial.print(" ");
-			Serial.print(motor_pwm[REAR_L]);
-			Serial.print(" ");
-			Serial.println(motor_pwm[FRONT_L]);
-		}
-		#endif
-
 	}
 
 
@@ -284,15 +252,6 @@ void menu_loop( void )
 
 		if( Ch == '1' )
 		{
-			PWM.set_all(100);	
-			Serial.println("in");
-		}
-		else if( Ch == 's')
-		{
-			PWM.set_all(0);
-		}
-		else if( Ch == '2' )
-		{
 			while(1)
 			{
 				IMU.update();
@@ -314,31 +273,7 @@ void menu_loop( void )
 					if( Serial.read() == 'x' ) break;
 				}
 			}
-		}
-		else if( Ch == '3' )
-		{
-			while(1)
-			{
-				IMU.update();
-
-				if( (millis()-tTime) >= 100 )
-				{
-					tTime = millis();
-					Serial.print(0);
-					Serial.print(" ");
-					Serial.print(IMU.gyroData[0]);
-					Serial.print(" ");
-					Serial.print(IMU.gyroData[1]);
-					Serial.print(" ");
-					Serial.println(IMU.gyroData[2]);
-				}			
-
-				if( Serial.available() )
-				{
-					if( Serial.read() == 'x' ) break;
-				}
-			}
-		}		
+		}	
 		else if( Ch == 'c' )
 		{
 			Serial.println("ACC Cali Start");
@@ -347,7 +282,6 @@ void menu_loop( void )
 			while( IMU.SEN.acc_cali_get_done() == false )
 			{
 				IMU.update();
-				//Serial.println( IMU.SEN.calibratingA );
 			}
 
 			Serial.print("ACC Cali End ");

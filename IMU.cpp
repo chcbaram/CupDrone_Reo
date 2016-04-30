@@ -49,101 +49,38 @@
 #define GYR_CMPFM_FACTOR 8 // that means a CMP_FACTOR of 256 (2^8)
 
 
-typedef struct  {
-  int32_t X,Y,Z;
+
+
+typedef struct  
+{
+	int32_t X,Y,Z;
 } t_int32_t_vector_def;
 
-typedef struct  {
-  uint16_t XL; int16_t X;
-  uint16_t YL; int16_t Y;
-  uint16_t ZL; int16_t Z;
+typedef struct  
+{
+	uint16_t XL; int16_t X;
+  	uint16_t YL; int16_t Y;
+  	uint16_t ZL; int16_t Z;
 } t_int16_t_vector_def;
 
 // note: we use implicit first 16 MSB bits 32 -> 16 cast. ie V32.X>>16 = V16.X
-typedef union {
-  int32_t A32[3];
-  t_int32_t_vector_def V32;
-  int16_t A16[6];
-  t_int16_t_vector_def V16;
+typedef union 
+{
+	int32_t A32[3];
+	t_int32_t_vector_def V32;
+	int16_t A16[6];
+	t_int16_t_vector_def V16;
 } t_int32_t_vector;
 
-//return angle , unit: 1/10 degree
-int16_t _atan2(int32_t y, int32_t x){
-  float z = y;
-  int16_t a;
-  uint8_t c;
-  c = abs(y) < abs(x);
-  if ( c ) {z = z / x;} else {z = x / z;}
-  a = 2046.43 * (z / (3.5714 +  z * z));
-  if ( c ){
-   if (x<0) {
-     if (y<0) a -= 1800;
-     else a += 1800;
-   }
-  } else {
-    a = 900 - a;
-    if (y<0) a -= 1800;
-  }
-  return a;
-}
 
-float InvSqrt (float x){ 
-  union{  
-    int32_t i;  
-    float   f; 
-  } conv; 
-  conv.f = x; 
-  conv.i = 0x5f1ffff9 - (conv.i >> 1); 
-  return conv.f * (1.68191409f - 0.703952253f * x * conv.f * conv.f);
-}
 
-// signed16 * signed16
-// 22 cycles
-// http://mekonik.wordpress.com/2009/03/18/arduino-avr-gcc-multiplication/
-#define MultiS16X16to32(longRes, intIn1, intIn2) \
-asm volatile ( \
-"clr r26 \n\t" \
-"mul %A1, %A2 \n\t" \
-"movw %A0, r0 \n\t" \
-"muls %B1, %B2 \n\t" \
-"movw %C0, r0 \n\t" \
-"mulsu %B2, %A1 \n\t" \
-"sbc %D0, r26 \n\t" \
-"add %B0, r0 \n\t" \
-"adc %C0, r1 \n\t" \
-"adc %D0, r26 \n\t" \
-"mulsu %B1, %A2 \n\t" \
-"sbc %D0, r26 \n\t" \
-"add %B0, r0 \n\t" \
-"adc %C0, r1 \n\t" \
-"adc %D0, r26 \n\t" \
-"clr r1 \n\t" \
-: \
-"=&r" (longRes) \
-: \
-"a" (intIn1), \
-"a" (intIn2) \
-: \
-"r26" \
-)
 
-int32_t  __attribute__ ((noinline)) mul(int16_t a, int16_t b) {
-  int32_t r;
-  MultiS16X16to32(r, a, b);
-  //r = (int32_t)a*b; without asm requirement
-  return r;
-}
 
-// Rotate Estimated vector(s) with small angle approximation, according to the gyro data
-void rotateV32( t_int32_t_vector *v,int16_t* delta) {
-  int16_t X = v->V16.X;
-  int16_t Y = v->V16.Y;
-  int16_t Z = v->V16.Z;
+int32_t  __attribute__ ((noinline)) mul(int16_t a, int16_t b);
+void rotateV32( t_int32_t_vector *v,int16_t* delta);
+float InvSqrt (float x);
+int16_t _atan2(int32_t y, int32_t x);
 
-  v->V32.Z -=  mul(delta[ROLL]  ,  X)  + mul(delta[PITCH] , Y);
-  v->V32.X +=  mul(delta[ROLL]  ,  Z)  - mul(delta[YAW]   , Y);
-  v->V32.Y +=  mul(delta[PITCH] ,  Z)  + mul(delta[YAW]   , X);
-}
 
 
 
@@ -363,3 +300,147 @@ void cIMU::getEstimatedAttitude( void )
 }
 
 #endif
+
+
+
+
+
+
+/*---------------------------------------------------------------------------
+     TITLE   : _atan2
+     WORK    : 
+     ARG     : void
+     RET     : void
+---------------------------------------------------------------------------*/
+//return angle , unit: 1/10 degree
+int16_t _atan2(int32_t y, int32_t x)
+{
+	float z = y;
+	int16_t a;
+	uint8_t c;
+
+
+	c = abs(y) < abs(x);
+
+	if ( c ) {z = z / x;} else {z = x / z;}
+
+	a = 2046.43 * (z / (3.5714 +  z * z));
+
+	if ( c )
+	{
+		if (x<0) 
+		{
+			if (y<0) a -= 1800;
+			else a += 1800;
+		}
+	} 
+	else 
+	{
+		a = 900 - a;
+		if (y<0) a -= 1800;
+	}
+
+	return a;
+}
+
+
+
+
+/*---------------------------------------------------------------------------
+     TITLE   : InvSqrt
+     WORK    : 
+     ARG     : void
+     RET     : void
+---------------------------------------------------------------------------*/
+float InvSqrt (float x)
+{ 
+  union{  
+    int32_t i;  
+    float   f; 
+  } conv; 
+
+
+  conv.f = x; 
+  conv.i = 0x5f1ffff9 - (conv.i >> 1); 
+
+  return conv.f * (1.68191409f - 0.703952253f * x * conv.f * conv.f);
+}
+
+
+
+
+
+/*---------------------------------------------------------------------------
+     TITLE   : MultiS16X16to32
+     WORK    : 
+     ARG     : void
+     RET     : void
+---------------------------------------------------------------------------*/
+// signed16 * signed16
+// 22 cycles
+// http://mekonik.wordpress.com/2009/03/18/arduino-avr-gcc-multiplication/
+#define MultiS16X16to32(longRes, intIn1, intIn2) \
+asm volatile ( \
+"clr r26 \n\t" \
+"mul %A1, %A2 \n\t" \
+"movw %A0, r0 \n\t" \
+"muls %B1, %B2 \n\t" \
+"movw %C0, r0 \n\t" \
+"mulsu %B2, %A1 \n\t" \
+"sbc %D0, r26 \n\t" \
+"add %B0, r0 \n\t" \
+"adc %C0, r1 \n\t" \
+"adc %D0, r26 \n\t" \
+"mulsu %B1, %A2 \n\t" \
+"sbc %D0, r26 \n\t" \
+"add %B0, r0 \n\t" \
+"adc %C0, r1 \n\t" \
+"adc %D0, r26 \n\t" \
+"clr r1 \n\t" \
+: \
+"=&r" (longRes) \
+: \
+"a" (intIn1), \
+"a" (intIn2) \
+: \
+"r26" \
+)
+
+
+
+
+/*---------------------------------------------------------------------------
+     TITLE   : mul
+     WORK    : 
+     ARG     : void
+     RET     : void
+---------------------------------------------------------------------------*/
+int32_t  __attribute__ ((noinline)) mul(int16_t a, int16_t b) 
+{
+  int32_t r;
+  MultiS16X16to32(r, a, b);
+  //r = (int32_t)a*b; without asm requirement
+  return r;
+}
+
+
+
+
+
+/*---------------------------------------------------------------------------
+     TITLE   : rotateV32
+     WORK    : 
+     ARG     : void
+     RET     : void
+---------------------------------------------------------------------------*/
+// Rotate Estimated vector(s) with small angle approximation, according to the gyro data
+void rotateV32( t_int32_t_vector *v,int16_t* delta) 
+{
+  int16_t X = v->V16.X;
+  int16_t Y = v->V16.Y;
+  int16_t Z = v->V16.Z;
+
+  v->V32.Z -=  mul(delta[ROLL]  ,  X)  + mul(delta[PITCH] , Y);
+  v->V32.X +=  mul(delta[ROLL]  ,  Z)  - mul(delta[YAW]   , Y);
+  v->V32.Y +=  mul(delta[PITCH] ,  Z)  + mul(delta[YAW]   , X);
+}
