@@ -71,18 +71,33 @@ void setup()
 	PID[YAW  ].set_gain_rate(68, 45, 0);
 */
 
+/*
 	//-- 각도 제어기 게인값 설정(P, I, D)
 	//
-	PID[ROLL ].set_gain_angle(30, 0, 0);
-	PID[PITCH].set_gain_angle(30, 0, 0);
-	PID[YAW  ].set_gain_angle(30, 0, 0);
+	PID[ROLL ].set_gain_angle(50, 10, 0);
+	PID[PITCH].set_gain_angle(50, 10, 0);
+	PID[YAW  ].set_gain_angle( 0,  0, 0);
 
 
 	//-- 각속도 제어기 게인값 설정(P, I, D)
 	//
-	PID[ROLL ].set_gain_rate(28, 0, 7);
-	PID[PITCH].set_gain_rate(28, 0, 7);
+	PID[ROLL ].set_gain_rate(28, 0, 0);
+	PID[PITCH].set_gain_rate(28, 0, 0);
 	PID[YAW  ].set_gain_rate(68, 0, 0);
+*/
+
+	//-- 각도 제어기 게인값 설정(P, I, D)
+	//
+	PID[ROLL ].set_gain_angle(90, 10, 100);
+	PID[PITCH].set_gain_angle(90, 10, 100);
+	PID[YAW  ].set_gain_angle( 0,  0,   0);
+
+
+	//-- 각속도 제어기 게인값 설정(P, I, D)
+	//
+	PID[ROLL ].set_gain_rate(33, 30, 23);
+	PID[PITCH].set_gain_rate(33, 30, 23);
+	PID[YAW  ].set_gain_rate(68, 45,  0);
 
 
 	//-- 전원 On시에 가속도 센서 캘리브레이션 실시  
