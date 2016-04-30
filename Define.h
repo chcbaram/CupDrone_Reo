@@ -19,14 +19,9 @@
 
 
 
-#define ROLL	0
-#define PITCH	1
-#define YAW		2
-
-#define REAR_R	0
-#define FRONT_R 1
-#define REAR_L	2
-#define FRONT_L 3
+#define ROLL		0
+#define PITCH		1
+#define YAW			2
 
 
 

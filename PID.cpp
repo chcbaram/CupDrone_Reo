@@ -1,17 +1,19 @@
 //----------------------------------------------------------------------------
-//    프로그램명 	: 
+//    프로그램명 	: PID
 //
-//    만든이   	: Cho Han Cheol 
+//    만든이   	: Baram ( chcbaram@paran.com )
 //
-//    날  짜    : 
+//    날  짜     : 
 //    
 //    최종 수정  	: 
 //
 //    MPU_Type	: 
 //
-//    파일명    	: LED.ino
+//    파일명    	: PID.cpp
 //----------------------------------------------------------------------------
-
+/*
+	Based on Multiwii : https://github.com/multiwii/multiwii-firmware
+*/
 
 
 
@@ -40,12 +42,14 @@
 ---------------------------------------------------------------------------*/
 cPID::cPID()
 {	
-	err_delta[0] = 0;
-	err_delta[1] = 0;
-	err_delta[2] = 0;
+	err_rate_delta[0] = 0;
+	err_rate_delta[1] = 0;
+	err_rate_delta[2] = 0;
 
-	err_last = 0;
-	err_sum  = 0;	
+	err_rate_last = 0;
+	err_rate_sum  = 0;	
+
+	err_angle_sum = 0;
 }
 
 
@@ -93,7 +97,8 @@ void cPID::set_gain_rate( uint8_t p_gain, uint8_t i_gain, uint8_t d_gain )
 ---------------------------------------------------------------------------*/
 void cPID::reset( void )
 {
-	err_sum = 0;	
+	err_rate_sum  = 0;	
+	err_angle_sum = 0;
 }
 
 
@@ -112,9 +117,9 @@ int16_t cPID::update( uint8_t mode, int16_t target_angle, int16_t current_angle,
 	int16_t err_angle;
 	int16_t err_rate;
 	int16_t angle_rate;
-	int16_t PTerm;
-	int16_t ITerm;
-	int16_t DTerm;
+	int16_t PTerm = 0;
+	int16_t ITerm = 0;
+	int16_t DTerm = 0;
 	int16_t deltaSum;
 
 
@@ -123,8 +128,14 @@ int16_t cPID::update( uint8_t mode, int16_t target_angle, int16_t current_angle,
 		// 각도 에러 구한다. deg
 		//
 		target_angle = constrain( target_angle, -500, +500 );
-     	err_angle    = target_angle - current_angle; 
-     	angle_rate   = ((int32_t) err_angle * Gain_Angle.P8)>>4;
+		err_angle    = target_angle - current_angle; 
+		
+		PTerm = ((int32_t) err_angle * Gain_Angle.P8)>>4;
+
+		err_angle_sum = constrain(err_angle_sum + err_angle,-10000,+10000);
+		ITerm         = ((int32_t)err_angle_sum * Gain_Angle.I8)>>12; 
+
+     	angle_rate   = PTerm + ITerm;
 	}
 	else
 	{
@@ -134,15 +145,9 @@ int16_t cPID::update( uint8_t mode, int16_t target_angle, int16_t current_angle,
 
 	// 각속도 에러 구한다. deg/s
 	//
-	err_rate = angle_rate  - current_velocity;
+	err_rate = angle_rate - current_velocity;
 
-/*
-	Serial.print(target_angle);
-	Serial.print(" ");
-	Serial.print(current_angle);
-	Serial.print(" ");	
-	Serial.println(err_rate);
-*/
+
 	// P 제어기값 계산
 	//
 	PTerm = ((int32_t) err_rate * Gain_Rate.P8)>>7;
@@ -150,26 +155,26 @@ int16_t cPID::update( uint8_t mode, int16_t target_angle, int16_t current_angle,
 
 	// I 제어기값 계산
 	//
-    err_sum += (((int32_t) err_rate * dt)>>11) * Gain_Rate.I8;
-    err_sum  = constrain(err_sum, (int32_t) -GYRO_I_MAX<<13, (int32_t) +GYRO_I_MAX<<13);
+    err_rate_sum += (((int32_t) err_rate * dt)>>11) * Gain_Rate.I8;
+    err_rate_sum  = constrain(err_rate_sum, (int32_t) -GYRO_I_MAX<<13, (int32_t) +GYRO_I_MAX<<13);
 
-	ITerm = err_sum>>13;
+	ITerm = err_rate_sum>>13;
 
 
 	// D 제어기값 계산
 	//
-	err_delta[0] = err_rate - err_last;  // 16 bits is ok here, the dif between 2 consecutive gyro reads is limited to 800
-	err_last     = err_rate;
+	err_rate_delta[0] = err_rate - err_rate_last;  // 16 bits is ok here, the dif between 2 consecutive gyro reads is limited to 800
+	err_rate_last     = err_rate;
 
     //Correct difference by cycle time. Cycle time is jittery (can be different 2 times), so calculated difference
     // would be scaled by different dt each time. Division by dT fixes that.
-	err_delta[0] = ((int32_t)err_delta[0] * ((uint16_t)0xFFFF / (dt>>4)))>>6;
+	err_rate_delta[0] = ((int32_t)err_rate_delta[0] * ((uint16_t)0xFFFF / (dt>>4)))>>6;
 
 	//add moving average here to reduce noise
-	deltaSum     = err_delta[2] + err_delta[1] + err_delta[0];
+	deltaSum     = err_rate_delta[2] + err_rate_delta[1] + err_rate_delta[0];
     
-    err_delta[2]   = err_delta[1];
-    err_delta[1]   = err_delta[0];
+    err_rate_delta[2]   = err_rate_delta[1];
+    err_rate_delta[1]   = err_rate_delta[0];
 
     
    	//Solve overflow in calculation above...
@@ -178,6 +183,25 @@ int16_t cPID::update( uint8_t mode, int16_t target_angle, int16_t current_angle,
 
 	pid_out =  PTerm + ITerm + DTerm;
 
+#if 0
+	static uint32_t tTime;
+
+	if( millis()-tTime > 100 )
+	{
+		tTime = millis();
+		Serial.print(PTerm);
+		Serial.print(" ");
+		Serial.print(ITerm);
+		Serial.print(" ");
+		Serial.print(DTerm);
+		Serial.print(" ");		
+		Serial.print(target_angle);
+		Serial.print(" ");
+		Serial.print(current_angle);
+		Serial.print(" ");	
+		Serial.println(err_rate);
+	}
+#endif
 	return pid_out;
 }
 

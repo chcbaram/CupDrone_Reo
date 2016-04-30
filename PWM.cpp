@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
-//    프로그램명 	: 
+//    프로그램명 	: PWM
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이     	: Baram ( chcbaram@paran.com )
 //
 //    날  짜     : 
 //    
@@ -9,7 +9,7 @@
 //
 //    MPU_Type	: 
 //
-//    파일명     	: LED.ino
+//    파일명     	: PWM.cpp
 //----------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ void cPWM::update( void )
 	Temp2 = pwm_out[3];
 	Temp2 = Temp2 >> 1;
 	TC4H  = Temp2 >> 8;
-	OCR4D = Temp2 & 0xFF;           //  pin 6	
+	OCR4D = Temp2 & 0xFF; 
 }
 
 
@@ -117,24 +117,10 @@ void cPWM::update( void )
 ---------------------------------------------------------------------------*/
 void cPWM::set_all( uint16_t Pwm )
 {
-	set_LT(Pwm);
-	set_LB(Pwm);
-	set_RT(Pwm);
-	set_RB(Pwm);
-}
-
-
-
-/*---------------------------------------------------------------------------
-     TITLE   : out_RT
-     WORK    : 
-     ARG     : void
-     RET     : void
----------------------------------------------------------------------------*/
-void cPWM::set_RT( uint16_t Pwm )
-{
-	Pwm = constrain( Pwm, 0, 1000 );
-	pwm_out[1] = Pwm;
+	set_out( 0, Pwm );
+	set_out( 1, Pwm );
+	set_out( 2, Pwm );
+	set_out( 3, Pwm );	
 }
 
 
@@ -142,48 +128,18 @@ void cPWM::set_RT( uint16_t Pwm )
 
 
 /*---------------------------------------------------------------------------
-     TITLE   : out_LT
+     TITLE   : set_out
      WORK    : 
      ARG     : void
      RET     : void
 ---------------------------------------------------------------------------*/
-void cPWM::set_LT( uint16_t Pwm )
+void cPWM::set_out( uint8_t motor_ch, uint16_t Pwm )
 {
-	Pwm = constrain( Pwm, 0, 1000 );
-	pwm_out[3] = Pwm;
+	if( motor_ch < PWM_MAX_CH )
+	{
+		Pwm = constrain( Pwm, 0, 1000 );
+		pwm_out[motor_ch] = Pwm;
+	}
 }
-
-
-
-
-
-/*---------------------------------------------------------------------------
-     TITLE   : out_LB
-     WORK    : 
-     ARG     : void
-     RET     : void
----------------------------------------------------------------------------*/
-void cPWM::set_LB( uint16_t Pwm )
-{
-	Pwm = constrain( Pwm, 0, 1000 );
-	pwm_out[2] = Pwm;
-}
-
-
-
-
-/*---------------------------------------------------------------------------
-     TITLE   : out_LB
-     WORK    : 
-     ARG     : void
-     RET     : void
----------------------------------------------------------------------------*/
-void cPWM::set_RB( uint16_t Pwm )
-{
-	Pwm = constrain( Pwm, 0, 1000 );
-	pwm_out[0] = Pwm;
- }
-        
-
 
 

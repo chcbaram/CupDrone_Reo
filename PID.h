@@ -51,10 +51,11 @@ public:
 	int16_t update( uint8_t mode, int16_t target_angle, int16_t current_angle, int16_t current_velocity, uint16_t dt );
 
 private:
+	int32_t err_angle_sum;
 
-	int16_t err_delta[3];
-	int16_t err_last;
-	int32_t err_sum;
+	int16_t err_rate_delta[3];
+	int16_t err_rate_last;
+	int32_t err_rate_sum;
 
 
 	_PID Gain_Angle;

@@ -11,7 +11,9 @@
 //
 //    파일명     	: IMU.ino
 //----------------------------------------------------------------------------
-
+/*
+	Based on Multiwii : https://github.com/multiwii/multiwii-firmware
+*/
 
 
 

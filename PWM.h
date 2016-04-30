@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //    프로그램명 	: PWM
 //
-//    만든이     	: Cho Han Cheol 
+//    만든이     	: Baram ( chcbaram@paran.com )
 //
 //    날  짜     : 
 //    
@@ -9,7 +9,7 @@
 //
 //    MPU_Type	: 
 //
-//    파일명     	: LED.h
+//    파일명     	: PWM.h
 //----------------------------------------------------------------------------
 #ifndef _PWM_H_
 #define _PWM_H_
@@ -22,6 +22,11 @@
 
 #define PWM_MAX_CH		4
 
+
+#define REAR_R			0
+#define FRONT_R 		1
+#define REAR_L			2
+#define FRONT_L 		3
 
 
 
@@ -39,10 +44,7 @@ public:
 	void update( void );
 
 	void set_all( uint16_t Pwm );	
-	void set_LT( uint16_t Pwm );
-	void set_LB( uint16_t Pwm );
-	void set_RT( uint16_t Pwm );
-	void set_RB( uint16_t Pwm );
+	void set_out( uint8_t motor_ch, uint16_t Pwm );
 
 private:
 	uint16_t pwm_out[PWM_MAX_CH];

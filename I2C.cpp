@@ -1,17 +1,19 @@
 //----------------------------------------------------------------------------
-//    프로그램명 	  : 
+//    프로그램명 	: I2C
 //
-//    만든이      : Cho Han Cheol 
+//    만든이     	: Baram ( chcbaram@paran.com )
 //
-//    날  짜          : 
+//    날  짜     : 
 //    
 //    최종 수정  	: 
 //
 //    MPU_Type	: 
 //
-//    파일명     	: LED.ino
+//    파일명     	: I2C.cpp
 //----------------------------------------------------------------------------
-
+/*
+	Based on Multiwii : https://github.com/multiwii/multiwii-firmware
+*/
 
 
 
@@ -34,20 +36,20 @@ cI2C I2C;
 
 void __attribute__ ((noinline)) waitTransmissionI2C(uint8_t twcr) 
 {
-     uint8_t count = 255;
+	uint8_t count = 255;
 
-     TWCR = twcr;
+	TWCR = twcr;
      
-     while (!(TWCR & (1<<TWINT))) 
-     {
-          count--;
-          if (count==0) 
-          {              //we are in a blocking state => we don't insist
-               TWCR = 0;                  //and we force a reset on TWINT register
-               I2C.i2c_errors_count++;
-               break;
-          }
-     }
+	while (!(TWCR & (1<<TWINT))) 
+	{
+		count--;
+		if (count==0) 
+		{              //we are in a blocking state => we don't insist
+			TWCR = 0;                  //and we force a reset on TWINT register
+			I2C.i2c_errors_count++;
+			break;
+		}
+	}
 }
 
 
@@ -177,14 +179,14 @@ uint8_t cI2C::read_nak(void)
 ---------------------------------------------------------------------------*/
 void cI2C::read_reg_to_buf(uint8_t add, uint8_t reg, uint8_t *buf, uint8_t size) 
 {
-     rep_start(add<<1); // I2C write direction
-     write(reg);        // register selection
-     rep_start((add<<1) | 1);  // I2C read direction
+	rep_start(add<<1); // I2C write direction
+	write(reg);        // register selection
+	rep_start((add<<1) | 1);  // I2C read direction
      
-     uint8_t *b = buf;
-     while (--size) *b++ = read_ack(); // acknowledge all but the final byte
+	uint8_t *b = buf;
+	while (--size) *b++ = read_ack(); // acknowledge all but the final byte
 
-     *b = read_nak();
+	*b = read_nak();
 }
 
 
@@ -199,7 +201,7 @@ void cI2C::read_reg_to_buf(uint8_t add, uint8_t reg, uint8_t *buf, uint8_t size)
 ---------------------------------------------------------------------------*/
 void cI2C::get_six_raw_adc(uint8_t add, uint8_t reg) 
 {
-     read_reg_to_buf(add, reg, rawADC, 6);
+	read_reg_to_buf(add, reg, rawADC, 6);
 }
 
 
@@ -214,10 +216,10 @@ void cI2C::get_six_raw_adc(uint8_t add, uint8_t reg)
 ---------------------------------------------------------------------------*/
 void cI2C::write_reg(uint8_t add, uint8_t reg, uint8_t val) 
 {
-     rep_start(add<<1); // I2C write direction
-     write(reg);        // register selection
-     write(val);        // value to write in register
-     stop();
+	rep_start(add<<1); // I2C write direction
+	write(reg);        // register selection
+	write(val);        // value to write in register
+	stop();
 }
 
 
@@ -232,9 +234,9 @@ void cI2C::write_reg(uint8_t add, uint8_t reg, uint8_t val)
 ---------------------------------------------------------------------------*/
 uint8_t cI2C::read_reg(uint8_t add, uint8_t reg) 
 {
-     uint8_t val;
+	uint8_t val;
 
-     read_reg_to_buf(add, reg, &val, 1);
+	read_reg_to_buf(add, reg, &val, 1);
 
-     return val;
+	return val;
 }
