@@ -15,7 +15,7 @@
 
 //-- 옵션 기능 활성화
 //
-#define _USE_FAIL_SAVE		0
+#define _USE_FAIL_SAVE		1
 
 
 //-- 모터 출력 분배 
