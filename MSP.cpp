@@ -45,7 +45,7 @@ cMSP::cMSP()
 	CmdThrotle = 0;
 
     HeadFreeMode = false;
-
+    AltHoldMode  = false;
     bConnected = false;
 }
 
@@ -120,7 +120,16 @@ bool cMSP::update( void )
                 else
                 {
                     HeadFreeMode = false;
-                }            
+                }  
+
+                if( CmdAux & 0x20 )
+                {
+                    AltHoldMode = true;
+                }          
+                else
+                {
+                    AltHoldMode = false;
+                }
                 break;
 
             case MSP_ARM:

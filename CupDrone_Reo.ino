@@ -9,7 +9,7 @@
 #include "MSP.h"
 #include "PWM.h"
 #include "PID.h"
-
+#include "SRF02.h"
 
 
 
@@ -30,7 +30,7 @@ cIMU		IMU;
 cMSP		MSP;
 cPWM		PWM;
 cPID		PID[3];
-
+cSRF02		SONAR;
 
 
 
@@ -42,6 +42,10 @@ int16_t target_throtle;
 
 int16_t target_head;
 
+
+bool    sonar_mode;
+int16_t target_throtle_sonar;
+int16_t target_distance;
 
 
 
@@ -58,7 +62,7 @@ void setup()
 	MSP.begin();
 	IMU.begin();
 	PWM.begin();
-
+	SONAR.begin();
 
 	//-- 각도 제어기 게인값 설정(P, I, D)
 	//
@@ -88,6 +92,13 @@ void setup()
 	//-- Head Free시 사용할 방향을 전원 On시에 저장한다.
 	//
 	target_head = IMU.angle[YAW];
+
+
+	//-- SONAR 모드 초기화
+	//
+	sonar_mode = false;
+	target_throtle_sonar = 0;
+	target_distance = 0;
 }
 
 
@@ -110,6 +121,8 @@ void loop()
 	int16_t motor_pwm[4];	
 	int16_t i;
 
+	int16_t sonar_err;
+	int16_t sonar_out;
 
 
 	//-- LED
@@ -153,6 +166,26 @@ void loop()
 			target_roll  = target_roll*cosDiff - target_pitch*sinDiff; 
 			target_pitch = pitch_value;
 		}
+
+
+		if( MSP.Get_AltHoldMode() == true && SONAR.is_connected() == true )
+		{
+			if( sonar_mode == false )
+			{
+				sonar_mode = true;
+				target_throtle_sonar = target_throtle;
+				target_distance      = SONAR.distance;		
+
+				Serial.print("target_throtle_sonar : ");
+				Serial.println(target_throtle_sonar);
+				Serial.print("target_distance : ");
+				Serial.println(target_distance);		
+			}
+		}
+		else
+		{
+			sonar_mode = false;
+		}
 	}
 
 
@@ -180,6 +213,24 @@ void loop()
 		target_yaw     = 0;
 		target_throtle = 0;
 		#endif
+	}
+
+
+	if( SONAR.update() == true )
+	{
+		if( sonar_mode == true &&  MSP.Get_ArmMode() == true )
+		{
+			sonar_err = target_distance - SONAR.distance;
+			sonar_out = sonar_err * 5;			
+			target_throtle  = target_throtle_sonar + sonar_out;
+			target_throtle  = constrain(target_throtle, 0, 1000);
+
+			Serial.print(SONAR.distance);	
+			Serial.print(" ");			
+			Serial.print(sonar_out);	
+			Serial.print(" ");	
+			Serial.println(target_throtle);	
+		}
 	}
 
 
@@ -273,7 +324,27 @@ void menu_loop( void )
 					if( Serial.read() == 'x' ) break;
 				}
 			}
-		}	
+		}
+		else if( Ch == '2' )
+		{
+			while(1)
+			{
+				SONAR.update();
+
+				if( (millis()-tTime) >= 100 )
+				{
+					tTime = millis();
+					Serial.print("SONA : ");
+					Serial.print(SONAR.distance);
+					Serial.println(" cm");
+				}			
+
+				if( Serial.available() )
+				{
+					if( Serial.read() == 'x' ) break;
+				}
+			}
+		}
 		else if( Ch == 'c' )
 		{
 			Serial.println("ACC Cali Start");

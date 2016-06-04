@@ -120,6 +120,7 @@ uint8_t cIMU::begin( void )
 
 	if( I2C.i2c_errors_count > 0 )
 	{
+		I2C.i2c_errors_count = 0;
 		err_code = IMU_ERR_I2C;
 	}
 	else
